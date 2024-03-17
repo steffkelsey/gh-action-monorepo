@@ -1,0 +1,44 @@
+---
+name: go-project
+'on':
+  pull_request:
+  push:
+    branches:
+      - main
+
+
+permissions:
+  contents: read
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  files-changed:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      go_project: ${{ steps.changes.outputs.go_project }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for changes in the go-project folder
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            go_project:
+              - 'go-project/**'
+
+  # Job to lint and test the code
+  lint-and-test:
+    if: needs.files-changed.outputs.go_project == 'true'
+    needs: files-changed
+    name: lint and test the go-project code
+    runs-on: ubuntu-22.04
+    steps:
+
+
